@@ -216,6 +216,15 @@ export default function App() {
   const [highlightedNodeId, setHighlightedNodeId] = useState(null);
   const [pulsedNodeId, setPulsedNodeId] = useState(null);
   const [treeVisible, setTreeVisible] = useState(true);
+  const [sidebarVisible, setSidebarVisible] = useState(true);
+
+  // Auto-collapse both side panels on narrow viewports (initial only)
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setSidebarVisible(false);
+      setTreeVisible(false);
+    }
+  }, []);
 
   const messageRefs = useRef({});
   const chatScrollRef = useRef(null);
@@ -574,17 +583,36 @@ export default function App() {
   // ── Render ──
   return (
     <div className="h-screen w-full flex bg-zinc-950 text-zinc-100 overflow-hidden font-sans">
-      <SidebarPanel
-        conversations={conversations}
-        activeConvId={activeConvId}
-        onSelect={setActiveConvId}
-        onNewChat={startNewChat}
-      />
+      <style>{`
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+        * { scrollbar-width: thin; scrollbar-color: #27272a transparent; }
+      `}</style>
+      {sidebarVisible && (
+        <SidebarPanel
+          conversations={conversations}
+          activeConvId={activeConvId}
+          onSelect={setActiveConvId}
+          onNewChat={startNewChat}
+          onCollapse={() => setSidebarVisible(false)}
+        />
+      )}
 
       {/* Main column */}
       <div className="flex-1 flex flex-col min-w-0 relative">
         {/* Top bar */}
-        <div className="h-14 flex items-center px-6 border-b border-zinc-800/30 shrink-0">
+        <div className="h-14 flex items-center px-4 sm:px-6 border-b border-zinc-800/30 shrink-0 gap-1">
+          {!sidebarVisible && (
+            <button
+              onClick={() => setSidebarVisible(true)}
+              className="w-7 h-7 rounded-md hover:bg-zinc-800/40 flex items-center justify-center text-zinc-400"
+              title="메뉴 열기"
+            >
+              <PanelLeft className="w-4 h-4" />
+            </button>
+          )}
           <button className="flex items-center gap-1.5 text-base text-zinc-200 hover:text-zinc-100 px-2 py-1 rounded-md hover:bg-zinc-800/40">
             <span>{activeConv.title}</span>
             <ChevronDown className="w-3.5 h-3.5 text-zinc-500" />
@@ -616,20 +644,21 @@ export default function App() {
             messages={activeConv.messages}
             getPathTo={getPathTo}
           />
+        ) : currentPath.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center text-center text-zinc-500 px-6">
+            <div>
+              <p className="text-lg mb-2">새 대화를 시작해 보세요</p>
+              <p className="text-sm">
+                AI 메시지의 분기 아이콘을 누르면 새 갈래로 이어집니다.
+              </p>
+            </div>
+          </div>
         ) : (
           <div
             ref={chatScrollRef}
-            className="flex-1 overflow-y-auto px-6 lg:px-12 py-8"
+            className="flex-1 overflow-y-auto px-6 lg:px-12 pt-8 flex flex-col"
           >
-            <div className="max-w-3xl mx-auto space-y-7">
-              {currentPath.length === 0 && (
-                <div className="text-center text-zinc-500 py-20">
-                  <p className="text-lg mb-2">새 대화를 시작해 보세요</p>
-                  <p className="text-sm">
-                    AI 메시지의 분기 아이콘을 누르면 새 갈래로 이어집니다.
-                  </p>
-                </div>
-              )}
+            <div className="max-w-3xl mx-auto space-y-7 w-full mt-auto">
               {currentPath.map((id, idx) => {
                 const m = activeConv.messages[id];
                 if (!m) return null;
@@ -641,6 +670,10 @@ export default function App() {
                 const siblingInfo = getSiblingInfo(id);
                 const isHighlighted = id === highlightedNodeId;
                 const isPulsed = id === pulsedNodeId;
+                const prevMsg =
+                  idx > 0 ? activeConv.messages[currentPath[idx - 1]] : null;
+                const extraTop =
+                  m.role === "user" && prevMsg?.role === "assistant";
                 return (
                   <MessageBlock
                     key={id}
@@ -649,6 +682,7 @@ export default function App() {
                     siblingInfo={siblingInfo}
                     isHighlighted={isHighlighted}
                     isPulsed={isPulsed}
+                    extraTop={extraTop}
                     refCallback={(el) => (messageRefs.current[id] = el)}
                     onBranch={() => startBranch(id)}
                     onSwitchBranch={(dir) =>
@@ -660,13 +694,12 @@ export default function App() {
                 );
               })}
               {isLoading && <LoadingIndicator />}
-              <div className="h-32" />
             </div>
           </div>
         )}
 
         {/* Composer */}
-        <div className="px-6 lg:px-12 pb-6 pt-2 shrink-0">
+        <div className="px-6 lg:px-12 pb-6 pt-5 shrink-0">
           <div className="max-w-3xl mx-auto">
             {pendingBranchFromId && (
               <div className="flex items-center gap-2 mb-2 text-xs px-3 py-2 bg-amber-500/10 text-amber-200 rounded-lg border border-amber-500/30">
@@ -719,7 +752,7 @@ export default function App() {
 // ============================================================
 //   Sidebar
 // ============================================================
-function SidebarPanel({ conversations, activeConvId, onSelect, onNewChat }) {
+function SidebarPanel({ conversations, activeConvId, onSelect, onNewChat, onCollapse }) {
   const recentTitles = useMemo(() => {
     const dynamicTitles = conversations.map((c) => c.title);
     const merged = [...dynamicTitles];
@@ -736,7 +769,11 @@ function SidebarPanel({ conversations, activeConvId, onSelect, onNewChat }) {
     >
       {/* Tab pill (Chat / list / code) with panel + search on the left */}
       <div className="px-3 pt-4 flex items-center gap-1">
-        <button className="w-9 h-9 rounded-lg hover:bg-zinc-800/40 flex items-center justify-center text-zinc-500">
+        <button
+          onClick={onCollapse}
+          className="w-9 h-9 rounded-lg hover:bg-zinc-800/40 flex items-center justify-center text-zinc-500"
+          title="메뉴 닫기"
+        >
           <PanelLeft className="w-4 h-4" />
         </button>
         <button className="w-9 h-9 rounded-lg hover:bg-zinc-800/40 flex items-center justify-center text-zinc-500">
@@ -824,6 +861,7 @@ function MessageBlock({
   siblingInfo,
   isHighlighted,
   isPulsed,
+  extraTop,
   refCallback,
   onBranch,
   onSwitchBranch,
@@ -845,6 +883,7 @@ function MessageBlock({
         className={`flex justify-end transition-opacity duration-300 ${
           dimmed ? "opacity-25" : ""
         }`}
+        style={extraTop ? { marginTop: "48px" } : undefined}
       >
         <div
           className="px-4 py-3 rounded-2xl bg-zinc-800/80 text-zinc-100 whitespace-pre-wrap break-words text-base leading-relaxed"
@@ -1014,8 +1053,8 @@ function TreePanel({
   if (allNodes.length === 0) {
     return (
       <div
-        className="shrink-0 bg-zinc-950 border-l border-zinc-800/40 flex flex-col"
-        style={{ width: "280px" }}
+        className="shrink-0 bg-zinc-950 flex flex-col"
+        style={{ width: "260px" }}
       >
         <TreeHeader
           compareMode={compareMode}
@@ -1023,7 +1062,7 @@ function TreePanel({
           compareCount={compareNodes.length}
           onHide={onHide}
         />
-        <div className="flex-1 flex items-center justify-center text-xs text-zinc-600 px-6 text-center">
+        <div className="flex-1 flex items-center justify-center pb-32 text-xs text-zinc-600 px-6 text-center border-l border-zinc-800/40">
           대화를 시작하면 여기에 갈래가 그려져요.
         </div>
       </div>
@@ -1034,10 +1073,10 @@ function TreePanel({
   const rows =
     Math.max(0, ...Object.values(layout).map((p) => p.depth)) + 1;
 
-  const COL_W = 36;
-  const ROW_H = 36;
-  const PAD_X = 28;
-  const PAD_Y = 26;
+  const COL_W = 48;
+  const ROW_H = 48;
+  const PAD_X = 36;
+  const PAD_Y = 34;
 
   const width = Math.max(180, PAD_X * 2 + (cols - 1) * COL_W);
   const height = Math.max(120, PAD_Y * 2 + (rows - 1) * ROW_H);
@@ -1064,8 +1103,8 @@ function TreePanel({
 
   return (
     <div
-      className="shrink-0 bg-zinc-950 border-l border-zinc-800/40 flex flex-col"
-      style={{ width: "280px" }}
+      className="shrink-0 bg-zinc-950 flex flex-col"
+      style={{ width: "260px" }}
     >
       <TreeHeader
         compareMode={compareMode}
@@ -1074,7 +1113,7 @@ function TreePanel({
         onHide={onHide}
       />
 
-      <div className="flex-1 overflow-auto p-3 relative">
+      <div className="flex-1 overflow-auto p-3 relative border-l border-zinc-800/40">
         <svg
           width={width}
           height={height}
@@ -1142,15 +1181,15 @@ function TreePanel({
 
             const r =
               isHighlight || isHover || isCompareSel || isBranchSrc
-                ? 6.5
-                : 4;
+                ? 9
+                : 6;
 
             return (
               <g key={`n-${m.id}`}>
                 <circle
                   cx={p.x}
                   cy={p.y}
-                  r={12}
+                  r={16}
                   fill="transparent"
                   className="cursor-pointer"
                   onMouseEnter={() => onHoverNode(m.id)}
@@ -1230,7 +1269,7 @@ function TreeHeader({ compareMode, onToggleCompare, compareCount, onHide }) {
           <GitBranch className="w-4 h-4" />
         </button>
       </div>
-      <div className="px-3 pt-3 pb-2 shrink-0">
+      <div className="px-3 pt-3 pb-2 shrink-0 border-l border-zinc-800/40">
         <button
           onClick={onToggleCompare}
           className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-xs transition ${
