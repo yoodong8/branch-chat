@@ -1,6 +1,3 @@
-// Proxies a chat request to Anthropic's Messages API.
-// Keeps ANTHROPIC_API_KEY on the server so it never reaches the browser.
-
 export const runtime = "edge";
 
 const SYSTEM_PROMPT = `당신은 브랜딩과 아이디어 발전을 함께 고민해주는 친근한 어시스턴트입니다.
@@ -10,70 +7,45 @@ const SYSTEM_PROMPT = `당신은 브랜딩과 아이디어 발전을 함께 고�
 - 마크다운(#, **) 보다는 평문 위주로, 가끔 짧은 강조만 사용합니다.`;
 
 export async function POST(req) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return new Response(
-      JSON.stringify({ error: "Missing ANTHROPIC_API_KEY env var" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+    return new Response(JSON.stringify({ error: "Missing GEMINI_API_KEY" }), { status: 500 });
+  }
+  const body = await req.json().catch(() => null);
+  const messages = body?.messages;
+  if (!Array.isArray(messages) || !messages.length) {
+    return new Response(JSON.stringify({ error: "messages required" }), { status: 400 });
+  }
+
+  const contents = messages.map((m) => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [{ text: m.content }],
+  }));
+
+  try {
+    const upstream = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          contents,
+          generationConfig: { maxOutputTokens: 800 },
+        }),
+      }
     );
-  }
-
-  let body;
-  try {
-    body = await req.json();
-  } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  const messages = Array.isArray(body?.messages) ? body.messages : [];
-  if (!messages.length) {
-    return new Response(JSON.stringify({ error: "messages required" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  try {
-    const upstream = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5",
-        max_tokens: 800,
-        system: SYSTEM_PROMPT,
-        messages,
-      }),
-    });
-
     if (!upstream.ok) {
-      const errText = await upstream.text();
-      return new Response(
-        JSON.stringify({ error: `Anthropic API error: ${errText}` }),
-        { status: upstream.status, headers: { "Content-Type": "application/json" } }
-      );
+      const t = await upstream.text();
+      return new Response(JSON.stringify({ error: `Gemini error: ${t}` }), { status: upstream.status });
     }
-
     const data = await upstream.json();
-    const text =
-      Array.isArray(data?.content) && data.content[0]?.type === "text"
-        ? data.content[0].text
-        : "";
-
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
     return new Response(JSON.stringify({ text }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (e) {
-    return new Response(
-      JSON.stringify({ error: e?.message || "Unknown error" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: e?.message || "error" }), { status: 500 });
   }
 }
