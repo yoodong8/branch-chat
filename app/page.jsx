@@ -214,6 +214,7 @@ export default function App() {
   const [compareNodes, setCompareNodes] = useState([]);
   const [hoveredNodeId, setHoveredNodeId] = useState(null);
   const [highlightedNodeId, setHighlightedNodeId] = useState(null);
+  const [pulsedNodeId, setPulsedNodeId] = useState(null);
   const [treeVisible, setTreeVisible] = useState(true);
 
   const messageRefs = useRef({});
@@ -478,6 +479,14 @@ export default function App() {
     return positions;
   }, [activeConv.messages, activeConv.rootId]);
 
+  function pulseNode(nodeId) {
+    setPulsedNodeId(nodeId);
+    setTimeout(
+      () => setPulsedNodeId((curr) => (curr === nodeId ? null : curr)),
+      250
+    );
+  }
+
   // ── Click tree node ──
   function handleTreeNodeClick(nodeId) {
     if (compareMode) {
@@ -487,6 +496,12 @@ export default function App() {
         if (prev.length >= 2) return [prev[1], nodeId];
         return [...prev, nodeId];
       });
+      return;
+    }
+
+    // Re-click on already highlighted node → pulse accent then fade back
+    if (nodeId === highlightedNodeId) {
+      pulseNode(nodeId);
       return;
     }
 
@@ -506,6 +521,7 @@ export default function App() {
       leaf = next.id;
     }
     updateActiveConv(() => ({ activeLeafId: leaf }));
+    lastProgScrollAt.current = Date.now();
     setHighlightedNodeId(nodeId);
     setTimeout(() => {
       const el = messageRefs.current[nodeId];
@@ -624,6 +640,7 @@ export default function App() {
                   branchPointIdx >= 0 && idx > branchPointIdx;
                 const siblingInfo = getSiblingInfo(id);
                 const isHighlighted = id === highlightedNodeId;
+                const isPulsed = id === pulsedNodeId;
                 return (
                   <MessageBlock
                     key={id}
@@ -631,6 +648,7 @@ export default function App() {
                     dimmed={dimmed}
                     siblingInfo={siblingInfo}
                     isHighlighted={isHighlighted}
+                    isPulsed={isPulsed}
                     refCallback={(el) => (messageRefs.current[id] = el)}
                     onBranch={() => startBranch(id)}
                     onSwitchBranch={(dir) =>
@@ -688,6 +706,7 @@ export default function App() {
           hoveredNodeId={hoveredNodeId}
           onHoverNode={setHoveredNodeId}
           onClickNode={handleTreeNodeClick}
+          onDoubleClickNode={pulseNode}
           onToggleCompare={toggleCompare}
           pendingBranchFromId={pendingBranchFromId}
           onHide={() => setTreeVisible(false)}
@@ -763,7 +782,7 @@ function SidebarPanel({ conversations, activeConvId, onSelect, onNewChat }) {
               onClick={() => conv && onSelect(conv.id)}
               className={`w-full text-left px-2.5 py-1.5 rounded-lg truncate transition ${
                 isActive
-                  ? "bg-zinc-800/70 text-zinc-50"
+                  ? "bg-zinc-800/70 text-zinc-400"
                   : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/30"
               } ${!conv ? "text-zinc-500/70" : ""}`}
             >
@@ -804,12 +823,21 @@ function MessageBlock({
   dimmed,
   siblingInfo,
   isHighlighted,
+  isPulsed,
   refCallback,
   onBranch,
   onSwitchBranch,
   isPendingBranchSource,
 }) {
   if (message.role === "user") {
+    const ringStyle = isHighlighted
+      ? {
+          boxShadow: isPulsed
+            ? "0 0 0 1.5px rgb(245 158 11)"
+            : "0 0 0 1px rgb(82 82 91)",
+          transition: `box-shadow ${isPulsed ? 150 : 1000}ms ease-out`,
+        }
+      : { transition: "box-shadow 1000ms ease-out" };
     return (
       <div
         ref={refCallback}
@@ -819,10 +847,8 @@ function MessageBlock({
         }`}
       >
         <div
-          className={`px-4 py-3 rounded-2xl bg-zinc-800/80 text-zinc-100 whitespace-pre-wrap break-words text-base leading-relaxed transition ${
-            isHighlighted ? "ring-1 ring-zinc-600" : ""
-          }`}
-          style={{ maxWidth: "80%" }}
+          className="px-4 py-3 rounded-2xl bg-zinc-800/80 text-zinc-100 whitespace-pre-wrap break-words text-base leading-relaxed"
+          style={{ maxWidth: "80%", ...ringStyle }}
         >
           {message.content}
         </div>
@@ -864,20 +890,20 @@ function MessageBlock({
         </ActionButton>
 
         {siblingInfo && siblingInfo.total > 1 && (
-          <div className="flex items-center gap-1.5 ml-2 text-xs text-zinc-500">
+          <div className="flex items-center gap-0.5 ml-2 px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-300 text-xs">
             <button
               onClick={() => onSwitchBranch(-1)}
-              className="hover:text-zinc-200 p-1 rounded"
+              className="hover:text-amber-100 p-1 rounded"
               title="이전 갈래"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
-            <span>
+            <span className="font-medium">
               {siblingInfo.idx + 1}/{siblingInfo.total}
             </span>
             <button
               onClick={() => onSwitchBranch(1)}
-              className="hover:text-zinc-200 p-1 rounded"
+              className="hover:text-amber-100 p-1 rounded"
               title="다음 갈래"
             >
               <ChevronRight className="w-3.5 h-3.5" />
@@ -976,6 +1002,7 @@ function TreePanel({
   hoveredNodeId,
   onHoverNode,
   onClickNode,
+  onDoubleClickNode,
   onToggleCompare,
   pendingBranchFromId,
   onHide,
@@ -1129,6 +1156,7 @@ function TreePanel({
                   onMouseEnter={() => onHoverNode(m.id)}
                   onMouseLeave={() => onHoverNode(null)}
                   onClick={() => onClickNode(m.id)}
+                  onDoubleClick={() => onDoubleClickNode && onDoubleClickNode(m.id)}
                 />
                 {(isHighlight || isCompareSel || isBranchSrc) && (
                   <circle
