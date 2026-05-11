@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo, forwardRef } from "react";
+import { useState, useEffect, useRef, useMemo, forwardRef, Fragment } from "react";
 import {
   Plus,
   ChevronDown,
@@ -658,7 +658,7 @@ export default function App() {
             ref={chatScrollRef}
             className="flex-1 overflow-y-auto px-6 lg:px-12 pt-8 flex flex-col"
           >
-            <div className="max-w-3xl mx-auto space-y-7 w-full mt-auto">
+            <div className="max-w-3xl mx-auto space-y-10 w-full mt-auto">
               {currentPath.map((id, idx) => {
                 const m = activeConv.messages[id];
                 if (!m) return null;
@@ -667,30 +667,60 @@ export default function App() {
                   : -1;
                 const dimmed =
                   branchPointIdx >= 0 && idx > branchPointIdx;
-                const siblingInfo = getSiblingInfo(id);
                 const isHighlighted = id === highlightedNodeId;
                 const isPulsed = id === pulsedNodeId;
                 const prevMsg =
                   idx > 0 ? activeConv.messages[currentPath[idx - 1]] : null;
                 const extraTop =
                   m.role === "user" && prevMsg?.role === "assistant";
+
+                // Branch-switch nav appears between the branch-source AI and
+                // the user message that's part of one of the branches.
+                let navEl = null;
+                if (m.role === "user" && m.parentId) {
+                  const branches = getChildren(m.parentId);
+                  if (branches.length > 1) {
+                    const branchIdx = branches.findIndex((b) => b.id === id);
+                    navEl = (
+                      <div className="flex justify-center -my-2">
+                        <div className="flex items-center gap-0.5 px-2 py-1 rounded-lg bg-amber-500/15 text-amber-300 text-xs">
+                          <button
+                            onClick={() => switchBranchAt(m.parentId, -1)}
+                            className="hover:text-amber-100 p-1 rounded"
+                            title="이전 갈래"
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </button>
+                          <span className="font-medium px-1">
+                            {branchIdx + 1} / {branches.length}
+                          </span>
+                          <button
+                            onClick={() => switchBranchAt(m.parentId, 1)}
+                            className="hover:text-amber-100 p-1 rounded"
+                            title="다음 갈래"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }
+                }
+
                 return (
-                  <MessageBlock
-                    key={id}
-                    message={m}
-                    dimmed={dimmed}
-                    siblingInfo={siblingInfo}
-                    isHighlighted={isHighlighted}
-                    isPulsed={isPulsed}
-                    extraTop={extraTop}
-                    refCallback={(el) => (messageRefs.current[id] = el)}
-                    onBranch={() => startBranch(id)}
-                    onSwitchBranch={(dir) =>
-                      siblingInfo &&
-                      switchBranchAt(siblingInfo.branchPointId, dir)
-                    }
-                    isPendingBranchSource={pendingBranchFromId === id}
-                  />
+                  <Fragment key={id}>
+                    {navEl}
+                    <MessageBlock
+                      message={m}
+                      dimmed={dimmed}
+                      isHighlighted={isHighlighted}
+                      isPulsed={isPulsed}
+                      extraTop={extraTop}
+                      refCallback={(el) => (messageRefs.current[id] = el)}
+                      onBranch={() => startBranch(id)}
+                      isPendingBranchSource={pendingBranchFromId === id}
+                    />
+                  </Fragment>
                 );
               })}
               {isLoading && <LoadingIndicator />}
@@ -699,7 +729,14 @@ export default function App() {
         )}
 
         {/* Composer */}
-        <div className="px-6 lg:px-12 pb-6 pt-5 shrink-0">
+        <div
+          className="px-6 lg:px-12 pb-6 pt-5 shrink-0"
+          onWheel={(e) => {
+            if (chatScrollRef.current) {
+              chatScrollRef.current.scrollTop += e.deltaY;
+            }
+          }}
+        >
           <div className="max-w-3xl mx-auto">
             {pendingBranchFromId && (
               <div className="flex items-center gap-2 mb-2 text-xs px-3 py-2 bg-amber-500/10 text-amber-200 rounded-lg border border-amber-500/30">
@@ -883,7 +920,7 @@ function MessageBlock({
         className={`flex justify-end transition-opacity duration-300 ${
           dimmed ? "opacity-25" : ""
         }`}
-        style={extraTop ? { marginTop: "48px" } : undefined}
+        style={extraTop ? { marginTop: "60px" } : undefined}
       >
         <div
           className="px-4 py-3 rounded-2xl bg-zinc-800/80 text-zinc-100 whitespace-pre-wrap break-words text-base leading-relaxed"
@@ -927,28 +964,6 @@ function MessageBlock({
         >
           <GitBranch className="w-3.5 h-3.5" />
         </ActionButton>
-
-        {siblingInfo && siblingInfo.total > 1 && (
-          <div className="flex items-center gap-0.5 ml-2 px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-300 text-xs">
-            <button
-              onClick={() => onSwitchBranch(-1)}
-              className="hover:text-amber-100 p-1 rounded"
-              title="이전 갈래"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-            </button>
-            <span className="font-medium">
-              {siblingInfo.idx + 1}/{siblingInfo.total}
-            </span>
-            <button
-              onClick={() => onSwitchBranch(1)}
-              className="hover:text-amber-100 p-1 rounded"
-              title="다음 갈래"
-            >
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
