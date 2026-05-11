@@ -1330,6 +1330,14 @@ function CompareView({ nodes, messages, getPathTo }) {
       <div className="grid grid-cols-2 gap-4 mx-auto" style={{ maxWidth: "1100px" }}>
         {nodes.map((nodeId, i) => {
           const path = getPathTo(nodeId);
+          // The tree node id is the user message of a pair; also include its AI response
+          const last = path[path.length - 1];
+          if (messages[last]?.role === "user") {
+            const aiChild = Object.values(messages).find(
+              (m) => m.parentId === last && m.role === "assistant"
+            );
+            if (aiChild) path.push(aiChild.id);
+          }
           const node = messages[nodeId];
           // try to find the branch label by walking up to a node with a branchLabel
           let lbl = null;
