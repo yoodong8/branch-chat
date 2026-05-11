@@ -19,6 +19,7 @@ import {
   Sparkles,
   Mic,
   ArrowUpRight,
+  Share2,
   Loader2,
   Check,
   X,
@@ -92,72 +93,80 @@ const SAMPLE_RECENTS = [
 
 function buildInitialConversations() {
   // pre-built so we can see the tree immediately
-  const u1 = nid(),
-    a1 = nid(),
-    u2 = nid(),
-    a2 = nid();
-  const u3 = nid(),
-    a3 = nid(); // branch A (default current)
-  const u3b = nid(),
-    a3b = nid(); // branch B
-  const u4 = nid(),
-    a4 = nid(); // continued on branch A
+  const u1 = nid(), a1 = nid(), u2 = nid(), a2 = nid();
+  const u3a = nid(), a3a = nid(), u4a = nid(), a4a = nid(), u5a = nid(), a5a = nid();
+  const u3b = nid(), a3b = nid();
 
   const messages = {
     [u1]: {
       id: u1,
       parentId: null,
       role: "user",
-      content: "캔들 오브제 브랜딩에 대해 같이 고민해줘",
+      content:
+        "캔들 오브제 브랜드를 시작하려고 하는데 컨셉을 잡기가 어려워. 요즘 사람들이 생일이나 기념일에 대해 느끼는 감정을 다뤄보고 싶어.",
     },
     [a1]: {
       id: a1,
       parentId: u1,
       role: "assistant",
       content:
-        '좋아요. 캔들 오브제는 결국 "어떤 순간을 위한 물건인가"가 핵심이에요.\n\n몇 가지 큰 방향 — 일상의 작은 의식, 공간의 무드 메이커, 아니면 자기 자신/누군가에게 주는 작은 선물. 어떤 결로 가져가고 싶으신가요?',
+        "흥미로운 출발점이에요. 생일·기념일은 누구나 겪지만 의외로 양가감정이 많은 순간이잖아요. 떠올리는 결이 더 따뜻한 쪽인가요, 아니면 약간 무거운 쪽인가요? 사람들이 실제로 어떤 결을 누르며 살고 있는지부터 잡으면 컨셉이 선명해질 거예요.",
     },
     [u2]: {
       id: u2,
       parentId: a1,
       role: "user",
-      content: "요즘 사람들이 생일을 점점 부담스럽게 느끼는 이유가 뭘까?",
+      content:
+        "무거운 쪽이야. 어른이 될수록 생일이 마냥 즐겁지만은 않더라고. 뭔가 부담스럽고 피곤한 감정도 같이 오는 것 같아.",
     },
     [a2]: {
       id: a2,
       parentId: u2,
       role: "assistant",
       content:
-        "좋은 질문이에요. 몇 가지 이유가 맞물려 있는 것 같아요.\nSNS의 압박이 가장 크게 작용해요. 기대치와 현실의 간극, 나이 듦에 대한 의식,\n관계 정리의 피로감... 여러 이유가 맞물려 있어요.",
+        "그 감각, 많은 사람이 공감할 거예요. '축하받아야 한다'는 압박, 챙겨야 할 관계의 무게, 한 해 더 먹는 것에 대한 복합적인 마음. 크게 두 갈래로 풀 수 있을 것 같아요 — (1) 나 자신과의 의식으로서의 캔들, 외부 시선에서 잠시 벗어나 스스로를 위한 시간을 만드는 방향. (2) 관계 피로감을 다루는 캔들, 타인을 위해 소모된 자신을 회복하는 방향. 어느 쪽이 더 와닿아요?",
     },
 
     // ── Branch A (default) ──
-    [u3]: {
-      id: u3,
+    [u3a]: {
+      id: u3a,
       parentId: a2,
       role: "user",
-      content: "생일을 챙기지 않는다면 케이크도 필요 없을까?",
+      content: "첫 번째 방향이 좋아. 근데 '의식'이라는 단어가 조금 무겁게 느껴지지 않을까?",
       branchLabel: "나를 위한 의식",
     },
-    [a3]: {
-      id: a3,
-      parentId: u3,
+    [a3a]: {
+      id: a3a,
+      parentId: u3a,
       role: "assistant",
       content:
-        "꼭 그렇지만은 않아요 😊\n\n케이크는 생일과 분리해서 생각해도 충분히 존재 이유가 있어요.\n혼자 조용히 켜두는 캔들처럼, 자기 자신을 위한 작은 의식이 될 수 있죠.",
+        "그 우려 이해돼요. '의식'이 자칫 종교적이거나 거창하게 들릴 수 있죠. 대안으로 '나에게 켜는 불', '혼자만의 분', '작은 멈춤' 같은 결의 표현이 있어요. 핵심은 '거창하지 않은, 그러나 분명히 자신을 위한 시간'이라는 뉘앙스. 브랜드 네임도 그 결을 따라가면 좋을 것 같아요.",
     },
-    [u4]: {
-      id: u4,
-      parentId: a3,
+    [u4a]: {
+      id: u4a,
+      parentId: a3a,
       role: "user",
-      content: "자기 자신에게 주는 선물 컨셉으로 발전시켜보자",
+      content: "'작은 멈춤'이라는 표현이 마음에 들어. 이걸 브랜드 네임으로 풀어내려면 어떻게 접근하면 좋을까?",
     },
-    [a4]: {
-      id: a4,
-      parentId: u4,
+    [a4a]: {
+      id: a4a,
+      parentId: u4a,
       role: "assistant",
       content:
-        "'나를 위한 조용한 기념'이라는 방향으로 잡아볼게요.\n포장은 간결하게 — 크라프트지 질감에 작은 메모 카드 하나.\n'올해도 잘 버텼어'처럼 짧은 문장이 캔들 오브제와 어울릴 것 같아요.\n네이밍 후보도 같이 뽑아볼게요. Quietly, Solo Flame, Just Me Tonight...",
+        "직역하면 설명적일 수 있으니 한두 단계 추상화하는 게 좋아요. 단어 자체를 쓰는 방향(한 호흡, 쉼표, 여백)도 있고, 멈춤이 일어나는 시간·공간을 은유하는 방향(저녁 7시, 창가)도 있어요. 어느 결이 더 끌려요? 단어 그 자체 vs 정황 은유.",
+    },
+    [u5a]: {
+      id: u5a,
+      parentId: a4a,
+      role: "user",
+      content: "정황을 은유하는 쪽이 시적이고 좋네. 시간 기반으로 가보면 어때?",
+    },
+    [a5a]: {
+      id: a5a,
+      parentId: u5a,
+      role: "assistant",
+      content:
+        "좋은 선택이에요. 시간은 즉각적으로 장면을 떠올리게 해서 캔들과 잘 맞아요. 다만 '7시'처럼 너무 구체적이면 확장성이 떨어지니, '하루의 끝 무렵' 정도의 감각으로 후보를 잡아볼게요 — 무렵, 기울 무렵, 어스름, 늦오후. 이 중 '무렵'이 여백 있고 한국어 정서와도 잘 맞아 보여요.",
     },
 
     // ── Branch B ──
@@ -165,7 +174,7 @@ function buildInitialConversations() {
       id: u3b,
       parentId: a2,
       role: "user",
-      content: "관계 정리의 피로감 부분을 더 자세히 풀어줘",
+      content: "두 번째 방향이 더 끌려. 관계 피로감을 다루는 캔들이 요즘 정서랑 잘 맞을 것 같아.",
       branchLabel: "관계 피로감",
     },
     [a3b]: {
@@ -173,7 +182,7 @@ function buildInitialConversations() {
       parentId: u3b,
       role: "assistant",
       content:
-        '관계 정리의 피로감은 생일이 일종의 "리트머스 시험지"가 되기 때문이에요.\n\n누가 챙겨주는지, 누가 잊었는지가 시각화되고, 그 결과를 마주하는 게 부담이 되거든요. 내가 챙겨야 할 사람의 리스트와, 챙겨받는 사람의 리스트가 어긋날 때의 미묘한 상처도 있고요.',
+        "그 방향도 시장 결과 잘 맞물려요. 관계 피로감은 많이 토로되지만 정작 '회복'으로 풀어내는 오브제 브랜드는 드물거든요. 다음 단계로 어떤 관계가 가장 무거운지 좁혀볼까요? 가족, 직장, 친구, SNS 상의 느슨한 관계 — 어디에 초점 맞추느냐에 따라 브랜드 톤이 크게 달라질 거예요.",
     },
   };
 
@@ -183,7 +192,7 @@ function buildInitialConversations() {
       title: "캔들 오브제 브랜딩",
       messages,
       rootId: u1,
-      activeLeafId: a4, // current = branch A leaf
+      activeLeafId: a5a, // current = Branch A deepest
     },
   ];
 }
@@ -438,27 +447,32 @@ export default function App() {
     updateActiveConv(() => ({ activeLeafId: leaf }));
   }
 
-  // ── Tree layout ──
+  // ── Tree layout (one node per user+AI pair; keyed by user message id) ──
   const treeLayout = useMemo(() => {
     const positions = {};
     let nextCol = 0;
+    const msgs = activeConv.messages;
 
-    function visit(id, col, depth) {
-      positions[id] = { col, depth };
-      const children = Object.values(activeConv.messages)
-        .filter((m) => m.parentId === id)
+    function visit(userId, col, depth) {
+      positions[userId] = { col, depth };
+      // Find the AI response for this user message
+      const aiMsg = Object.values(msgs).find(
+        (m) => m.parentId === userId && m.role === "assistant"
+      );
+      if (!aiMsg) return;
+      // Next-level pairs = user messages branching from this AI message
+      const childUsers = Object.values(msgs)
+        .filter((m) => m.parentId === aiMsg.id && m.role === "user")
         .sort((a, b) => (a.id < b.id ? -1 : 1));
-      if (children.length === 0) return;
-      // First child stays in same column (mainline);
-      // additional children fan out to new columns.
-      visit(children[0].id, col, depth + 1);
-      for (let i = 1; i < children.length; i++) {
+      if (childUsers.length === 0) return;
+      visit(childUsers[0].id, col, depth + 1);
+      for (let i = 1; i < childUsers.length; i++) {
         nextCol++;
-        visit(children[i].id, nextCol, depth + 1);
+        visit(childUsers[i].id, nextCol, depth + 1);
       }
     }
 
-    if (activeConv.rootId && activeConv.messages[activeConv.rootId]) {
+    if (activeConv.rootId && msgs[activeConv.rootId]) {
       visit(activeConv.rootId, 0, 0);
     }
     return positions;
@@ -561,13 +575,21 @@ export default function App() {
           </button>
           <div className="flex-1" />
           {!treeVisible && (
-            <button
-              onClick={() => setTreeVisible(true)}
-              className="w-7 h-7 rounded-md hover:bg-zinc-800/40 flex items-center justify-center text-zinc-400"
-              title="노드 트리 보기"
-            >
-              <GitBranch className="w-4 h-4" />
-            </button>
+            <>
+              <button
+                className="w-7 h-7 rounded-md hover:bg-zinc-800/40 flex items-center justify-center text-zinc-500"
+                title="대화 공유"
+              >
+                <Share2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setTreeVisible(true)}
+                className="w-7 h-7 rounded-md hover:bg-zinc-800/40 flex items-center justify-center text-zinc-600"
+                title="노드 트리 보기"
+              >
+                <GitBranch className="w-4 h-4" />
+              </button>
+            </>
           )}
         </div>
 
@@ -958,7 +980,10 @@ function TreePanel({
   pendingBranchFromId,
   onHide,
 }) {
-  const allNodes = Object.values(messages);
+  // Only render one node per pair (keyed by user message id)
+  const allNodes = Object.values(messages).filter(
+    (m) => m.role === "user" && layout[m.id]
+  );
   if (allNodes.length === 0) {
     return (
       <div
@@ -1029,16 +1054,20 @@ function TreePanel({
           className="block"
           style={{ overflow: "visible" }}
         >
-          {/* Edges */}
+          {/* Edges (pair → parent pair) */}
           {allNodes.map((m) => {
-            if (!m.parentId) return null;
-            const p = pos(m.parentId);
+            // m is a user msg; its parent in the tree is the previous pair's user msg
+            // = m.parentId (AI msg) .parentId (previous user msg)
+            const aiParent = m.parentId ? messages[m.parentId] : null;
+            const parentPairId = aiParent ? aiParent.parentId : null;
+            if (!parentPairId) return null;
+            const p = pos(parentPairId);
             const c = pos(m.id);
             if (!p || !c) return null;
             const inActivePath =
-              currentPathSet.has(m.id) && currentPathSet.has(m.parentId);
+              currentPathSet.has(m.id) && currentPathSet.has(parentPairId);
             const dimmed =
-              pendingDimSet.has(m.id) || pendingDimSet.has(m.parentId);
+              pendingDimSet.has(m.id) || pendingDimSet.has(parentPairId);
             const stroke = dimmed
               ? "#27272a"
               : inActivePath
@@ -1159,12 +1188,15 @@ function TreeHeader({ compareMode, onToggleCompare, compareCount, onHide }) {
     <>
       <div className="h-14 flex items-center px-4 border-b border-zinc-800/30 gap-2 shrink-0">
         <div className="flex-1" />
-        <button className="w-7 h-7 rounded-md hover:bg-zinc-800/40 flex items-center justify-center text-zinc-500">
-          <ArrowUpRight className="w-4 h-4" />
+        <button
+          className="w-7 h-7 rounded-md hover:bg-zinc-800/40 flex items-center justify-center text-zinc-500"
+          title="대화 공유"
+        >
+          <Share2 className="w-4 h-4" />
         </button>
         <button
           onClick={onHide}
-          className="w-7 h-7 rounded-md hover:bg-zinc-800/40 flex items-center justify-center text-zinc-400"
+          className="w-7 h-7 rounded-md hover:bg-zinc-800/40 flex items-center justify-center text-zinc-100"
           title="노드 트리 숨기기"
         >
           <GitBranch className="w-4 h-4" />
