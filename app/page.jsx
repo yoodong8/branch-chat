@@ -205,6 +205,7 @@ export default function App() {
   const [compareNodes, setCompareNodes] = useState([]);
   const [hoveredNodeId, setHoveredNodeId] = useState(null);
   const [highlightedNodeId, setHighlightedNodeId] = useState(null);
+  const [treeVisible, setTreeVisible] = useState(true);
 
   const messageRefs = useRef({});
   const chatScrollRef = useRef(null);
@@ -558,6 +559,16 @@ export default function App() {
             <span>{activeConv.title}</span>
             <ChevronDown className="w-3.5 h-3.5 text-zinc-500" />
           </button>
+          <div className="flex-1" />
+          {!treeVisible && (
+            <button
+              onClick={() => setTreeVisible(true)}
+              className="w-7 h-7 rounded-md hover:bg-zinc-800/40 flex items-center justify-center text-zinc-400"
+              title="노드 트리 보기"
+            >
+              <GitBranch className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {/* Content area */}
@@ -643,20 +654,23 @@ export default function App() {
         </div>
       </div>
 
-      <TreePanel
-        messages={activeConv.messages}
-        layout={treeLayout}
-        currentPathSet={currentPathSet}
-        currentPath={currentPath}
-        highlightedNodeId={highlightedNodeId}
-        compareMode={compareMode}
-        compareNodes={compareNodes}
-        hoveredNodeId={hoveredNodeId}
-        onHoverNode={setHoveredNodeId}
-        onClickNode={handleTreeNodeClick}
-        onToggleCompare={toggleCompare}
-        pendingBranchFromId={pendingBranchFromId}
-      />
+      {treeVisible && (
+        <TreePanel
+          messages={activeConv.messages}
+          layout={treeLayout}
+          currentPathSet={currentPathSet}
+          currentPath={currentPath}
+          highlightedNodeId={highlightedNodeId}
+          compareMode={compareMode}
+          compareNodes={compareNodes}
+          hoveredNodeId={hoveredNodeId}
+          onHoverNode={setHoveredNodeId}
+          onClickNode={handleTreeNodeClick}
+          onToggleCompare={toggleCompare}
+          pendingBranchFromId={pendingBranchFromId}
+          onHide={() => setTreeVisible(false)}
+        />
+      )}
     </div>
   );
 }
@@ -679,22 +693,14 @@ function SidebarPanel({ conversations, activeConvId, onSelect, onNewChat }) {
       className="shrink-0 bg-zinc-950 border-r border-zinc-800/40 flex flex-col"
       style={{ width: "260px" }}
     >
-      {/* Window controls */}
-      <div className="px-4 pt-4 pb-1 flex items-center gap-1.5">
-        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#ff5f57" }} />
-        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#febc2e" }} />
-        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#28c840" }} />
-        <div className="flex-1" />
-        <button className="w-6 h-6 rounded-md hover:bg-zinc-800/40 flex items-center justify-center text-zinc-500">
-          <PanelLeft className="w-3.5 h-3.5" />
+      {/* Tab pill (Chat / list / code) with panel + search on the left */}
+      <div className="px-3 pt-4 flex items-center gap-1">
+        <button className="w-9 h-9 rounded-lg hover:bg-zinc-800/40 flex items-center justify-center text-zinc-500">
+          <PanelLeft className="w-4 h-4" />
         </button>
-        <button className="w-6 h-6 rounded-md hover:bg-zinc-800/40 flex items-center justify-center text-zinc-500">
-          <Search className="w-3.5 h-3.5" />
+        <button className="w-9 h-9 rounded-lg hover:bg-zinc-800/40 flex items-center justify-center text-zinc-500">
+          <Search className="w-4 h-4" />
         </button>
-      </div>
-
-      {/* Tab pill (Chat / list / code) */}
-      <div className="px-3 mt-3 flex items-center gap-1">
         <button className="flex-1 h-9 rounded-lg bg-zinc-800/70 flex items-center justify-center gap-1.5 text-sm text-zinc-100 font-medium">
           <MessageSquare className="w-4 h-4" />
           Chat
@@ -725,7 +731,7 @@ function SidebarPanel({ conversations, activeConvId, onSelect, onNewChat }) {
       <div className="px-4 mt-5 mb-1.5 text-xs uppercase text-zinc-500 tracking-wider font-medium">
         Recents
       </div>
-      <div className="flex-1 overflow-y-auto px-2 pb-4 space-y-0.5 text-xs">
+      <div className="flex-1 overflow-y-auto px-2 pb-4 space-y-0.5 text-sm">
         {recentTitles.map((title, i) => {
           const conv = conversations.find((c) => c.title === title);
           const isActive = conv && conv.id === activeConvId;
@@ -748,10 +754,10 @@ function SidebarPanel({ conversations, activeConvId, onSelect, onNewChat }) {
       {/* Footer */}
       <div className="px-3 py-3 border-t border-zinc-800/40 flex items-center gap-2.5">
         <div className="w-7 h-7 rounded-full bg-orange-700/90 flex items-center justify-center text-xs font-medium">
-          동
+          P
         </div>
         <div className="text-xs text-zinc-300 flex-1 truncate">
-          동현 <span className="text-zinc-500">· Pro</span>
+          파이 <span className="text-zinc-500">· Pro</span>
         </div>
         <ChevronDown className="w-3.5 h-3.5 text-zinc-500" />
       </div>
@@ -908,16 +914,16 @@ const Composer = forwardRef(function Composer(
         placeholder="메시지를 입력하세요..."
         rows={1}
         disabled={disabled}
-        className="w-full bg-transparent resize-none outline-none text-zinc-100 placeholder-zinc-500 text-base leading-relaxed disabled:opacity-50 max-h-40"
+        className="w-full ml-2 mt-0.5 bg-transparent resize-none outline-none text-zinc-100 placeholder-zinc-500 text-base leading-relaxed disabled:opacity-50 max-h-40"
         style={{ minHeight: "24px" }}
       />
       <div className="flex items-center justify-between mt-1.5">
-        <button className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200">
+        <button className="w-8 h-8 -ml-1 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200">
           <Plus className="w-4 h-4" />
         </button>
         <div className="flex items-center gap-1.5">
           <button className="flex items-center gap-1 text-xs text-zinc-400 px-2 py-1 rounded-md hover:bg-zinc-800/40 hover:text-zinc-200">
-            <span>Sonnet 4.6</span>
+            <span>Phi 1.0</span>
             <ChevronDown className="w-3 h-3" />
           </button>
           <button
@@ -950,6 +956,7 @@ function TreePanel({
   onClickNode,
   onToggleCompare,
   pendingBranchFromId,
+  onHide,
 }) {
   const allNodes = Object.values(messages);
   if (allNodes.length === 0) {
@@ -962,6 +969,7 @@ function TreePanel({
           compareMode={compareMode}
           onToggleCompare={onToggleCompare}
           compareCount={compareNodes.length}
+          onHide={onHide}
         />
         <div className="flex-1 flex items-center justify-center text-xs text-zinc-600 px-6 text-center">
           대화를 시작하면 여기에 갈래가 그려져요.
@@ -1011,6 +1019,7 @@ function TreePanel({
         compareMode={compareMode}
         onToggleCompare={onToggleCompare}
         compareCount={compareNodes.length}
+        onHide={onHide}
       />
 
       <div className="flex-1 overflow-auto p-3 relative">
@@ -1145,7 +1154,7 @@ function TreePanel({
   );
 }
 
-function TreeHeader({ compareMode, onToggleCompare, compareCount }) {
+function TreeHeader({ compareMode, onToggleCompare, compareCount, onHide }) {
   return (
     <>
       <div className="h-14 flex items-center px-4 border-b border-zinc-800/30 gap-2 shrink-0">
@@ -1153,7 +1162,11 @@ function TreeHeader({ compareMode, onToggleCompare, compareCount }) {
         <button className="w-7 h-7 rounded-md hover:bg-zinc-800/40 flex items-center justify-center text-zinc-500">
           <ArrowUpRight className="w-4 h-4" />
         </button>
-        <button className="w-7 h-7 rounded-md hover:bg-zinc-800/40 flex items-center justify-center text-zinc-400">
+        <button
+          onClick={onHide}
+          className="w-7 h-7 rounded-md hover:bg-zinc-800/40 flex items-center justify-center text-zinc-400"
+          title="노드 트리 숨기기"
+        >
           <GitBranch className="w-4 h-4" />
         </button>
       </div>
