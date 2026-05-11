@@ -328,6 +328,10 @@ export default function App() {
 
     setPendingBranchFromId(null);
 
+    // First message of a fresh chat → fire off a title generation in the background
+    const isFirstMessageOfNewChat =
+      activeConv.title === "새 대화" && parentId === null;
+
     const userMsgId = nid();
     const userMsg = {
       id: userMsgId,
@@ -384,6 +388,15 @@ export default function App() {
             [userMsgId]: { ...c.messages[userMsgId], branchLabel: label },
           },
         }));
+      }
+
+      // Auto-generate chat title from first message of a fresh chat
+      if (isFirstMessageOfNewChat) {
+        generateBranchLabel(text).then((title) => {
+          if (title && title !== "새 갈래") {
+            updateActiveConv(() => ({ title }));
+          }
+        });
       }
     } catch (e) {
       const errId = nid();
@@ -790,13 +803,17 @@ export default function App() {
 //   Sidebar
 // ============================================================
 function SidebarPanel({ conversations, activeConvId, onSelect, onNewChat, onCollapse }) {
-  const recentTitles = useMemo(() => {
-    const dynamicTitles = conversations.map((c) => c.title);
-    const merged = [...dynamicTitles];
-    SAMPLE_RECENTS.forEach((t) => {
-      if (!merged.includes(t)) merged.push(t);
-    });
-    return merged;
+  const recentItems = useMemo(() => {
+    const dynamicTitles = new Set(conversations.map((c) => c.title));
+    const realItems = conversations.map((c) => ({
+      key: c.id,
+      title: c.title,
+      conv: c,
+    }));
+    const placeholderItems = SAMPLE_RECENTS.filter(
+      (t) => !dynamicTitles.has(t)
+    ).map((t, i) => ({ key: `sample-${i}`, title: t, conv: null }));
+    return [...realItems, ...placeholderItems];
   }, [conversations]);
 
   return (
@@ -847,18 +864,17 @@ function SidebarPanel({ conversations, activeConvId, onSelect, onNewChat, onColl
         Recents
       </div>
       <div className="flex-1 overflow-y-auto px-2 pb-4 space-y-0.5 text-sm">
-        {recentTitles.map((title, i) => {
-          const conv = conversations.find((c) => c.title === title);
+        {recentItems.map(({ key, title, conv }) => {
           const isActive = conv && conv.id === activeConvId;
           return (
             <button
-              key={`${title}-${i}`}
+              key={key}
               onClick={() => conv && onSelect(conv.id)}
               className={`w-full text-left px-2.5 py-1.5 rounded-lg truncate transition ${
                 isActive
                   ? "bg-zinc-800/70 text-zinc-400"
-                  : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/30"
-              } ${!conv ? "text-zinc-500/70" : ""}`}
+                  : "text-zinc-500/70 hover:text-zinc-300 hover:bg-zinc-800/30"
+              }`}
             >
               {title}
             </button>
